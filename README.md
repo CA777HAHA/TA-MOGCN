@@ -32,10 +32,10 @@ training mechanism. The demonstration includes the following steps:
     each patient and fuse the modality-specific representations. The
     fused representation is passed through three classification heads,
     whose outputs are summed.
-5.  Calculate a topology factor, λ, from the stored edge-index entries
-    of the mRNA reference graph per node, including self-loops. Use this
-    factor to scale the DropEdge probability, auxiliary-loss
-    coefficient, and weight-decay coefficient.
+5.  Calculate a topology factor, λ, from the connectivity of the mRNA
+    reference graph. Use this factor to regulate the DropEdge
+    probability, auxiliary-loss coefficient, and weight-decay
+    coefficient.
 6.  Optimize the model using training labels, monitor validation loss
     for model selection and early stopping, and restore the model
     parameters associated with the lowest validation loss.
@@ -122,14 +122,14 @@ After preparing `dataset/1_.csv`, `dataset/2_.csv`, and
 
 On Windows Command Prompt:
 
-```bat
+``` bat
 if not exist data\sample_data mkdir data\sample_data
 python main.py
 ```
 
 On Linux or macOS:
 
-```bash
+``` bash
 mkdir -p data/sample_data
 python main.py
 ```
@@ -156,32 +156,25 @@ indices, and `GCNConv` performs graph normalization.
 
 ### 4.3 Topology Factor
 
-Before training, `TA_MOGCN.py` calculates the mRNA reference graph's
-average degree using the number of stored edge-index entries divided by
-the number of nodes. Self-loop entries are included in this count.
+Before training, `TA_MOGCN.py` calculates a topology factor (λ) based on
+the connectivity of the mRNA reference graph. This factor is used to
+regulate the DropEdge probability, auxiliary-loss coefficient, and
+weight-decay coefficient, allowing the training configuration to account
+for differences in graph connectivity.
 
-The implementation uses the following calculations:
-
-```python
-num_nodes = DF[0].shape[0]
-num_edges = EDGES[0].shape[1]
-avg_degree = num_edges / num_nodes
-degree_factor = max(0.0, min(1.0, (avg_degree - 3.5) / 1.5))
-
-dynamic_drop_p = 0.20 * degree_factor
-dynamic_alpha = 0.30 * degree_factor
-dynamic_wd = 1e-4 * degree_factor
-```
-
-The topology factor is computed once before training. Its value and the
-resulting coefficients remain unchanged during the run.
+In the current implementation, graph connectivity is quantified using
+the average number of stored mRNA edge-index entries per node, including
+self-loops. The topology factor is computed once before training and
+remains fixed throughout the run. Its mathematical formulation and
+rationale are described in the Methods section of the accompanying
+paper.
 
 ## 5. Run the Single-Run Demo
 
 After preparing the input files and generating the graph files, run the
 following command from the repository root:
 
-```bash
+``` bash
 python TA_MOGCN.py
 ```
 
